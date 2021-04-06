@@ -1,0 +1,164 @@
+#include <SoftwareSerial.h>
+#include <LiquidCrystal.h>
+//Create software serial object to communicate with A6
+SoftwareSerial mySerial(3, 2); //A6 Tx & Rx is connected to Arduino #9 & #8
+
+int e = 14;
+int m = 15;
+int f = 16;
+int pump = 17;
+
+int elevel = 0;
+int mlevel = 0;
+int flevel = 0;
+
+unsigned long waterEmptySeconds = 0;
+unsigned long waterFullSeconds = 0;
+
+int waterEmptyCountdown = 5;
+int storedWaterEmptyCountdown = waterEmptyCountdown;
+
+int waterFullCountdown = 5;
+int storedWaterFullCountdown = waterFullCountdown;
+
+const int rs = 12, en = 11, d4 = 7, d5 = 6, d6 = 5, d7 = 4;
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+
+void setup()
+{ 
+mySerial.begin(115200);
+
+lcd.begin(16, 2);
+  // Print a message to the LCD.
+  lcd.print("INITIALIZING");
+  delay(3000);
+   lcd.clear(); 
+  lcd.print("PLEASE WAIT...");
+  delay(4000);
+   lcd.clear();
+   lcd.print("WATER LEVEL");
+   lcd.setCursor(0,2);
+   lcd.print("MONITOR");
+   delay(2000);
+   lcd.clear();
+  
+   
+  delay(2000); 
+
+  
+  pinMode(e, INPUT);
+  pinMode(m, INPUT);
+  pinMode(f, INPUT);
+  pinMode(pump, OUTPUT);
+  
+  
+  
+}
+
+void loop()
+{
+
+elevel = digitalRead(e);
+mlevel = digitalRead(m);
+flevel = digitalRead(f);
+
+if (flevel == 0 && mlevel==0 && elevel==0)
+{
+ 
+      
+      delay(200);
+  lcd.clear();
+   lcd.print("TANK IS FULL");
+   digitalWrite(pump,LOW);
+
+    waterEmptyCountdown = storedWaterEmptyCountdown;
+    if(millis()-waterFullSeconds>=1000){
+      if(!(waterFullCountdown==0)){
+        waterFullSeconds=millis();
+        waterFullCountdown--;
+        if(waterFullCountdown==2){
+
+          
+
+          mySerial.print("\r");
+          delay(1000);
+          mySerial.println("AT+CMGF=1");
+          delay(1000);
+          mySerial.println("AT+CMGS=\"+2349035222420\"");
+          delay(1000);
+          mySerial.print("TANK IS FULL");
+          delay(1000);
+          mySerial.write(0x1A);
+          delay(1000);
+          }
+        
+        }
+      }
+    
+    }
+     
+     
+  
+   else if (flevel == 1 && mlevel==0 && elevel==0)
+   {
+    
+         delay(200);
+    lcd.clear();
+   lcd.print("MIDDLE LEVEL");
+   digitalWrite(pump,HIGH);
+    }
+    
+  else if (flevel == 1 && mlevel==1 && elevel==0)
+  {
+    
+        delay(200);
+    lcd.clear();
+   lcd.print("ALMOST EMPTY");
+   digitalWrite(pump,HIGH);
+
+    }
+    
+     else if (flevel == 1 && mlevel==1 && elevel==1)
+     {
+      
+            delay(200);
+    lcd.clear();
+   lcd.print("TANK IS EMPTY");
+   digitalWrite(pump,HIGH);
+ 
+       waterFullCountdown = storedWaterFullCountdown;
+    if(millis()-waterEmptySeconds>=1000){
+      if(!(waterEmptyCountdown==0)){
+        waterEmptySeconds=millis();
+        waterEmptyCountdown--;
+        if(waterEmptyCountdown==2)
+        {
+   
+            mySerial.print("\r");
+          delay(1000);
+          mySerial.println("AT+CMGF=1");
+          delay(1000);
+          mySerial.println("AT+CMGS=\"+2349035222420\"");
+          delay(1000);
+          mySerial.print("TANK IS EMPTY");
+          delay(1000);
+          mySerial.write(0x1A);
+          delay(1000);
+      }
+      }
+    }   
+     }
+     
+  else{
+    delay(200);
+    lcd.clear();
+    digitalWrite(pump,LOW);
+   lcd.print("SENSOR NOT");
+   lcd.setCursor(0,2);
+   lcd.print("CONNECTED");
+  
+  }    
+ }
+       
+     
+
